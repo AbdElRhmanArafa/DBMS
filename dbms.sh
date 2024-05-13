@@ -1,6 +1,8 @@
 #!/bin/bash
 
 
+# shellcheck source=somefile
+source ./showintables.sh
 
 # Database Management Functions
 MainPath=$(pwd)
@@ -13,10 +15,12 @@ dbms () {
     echo "3. connect to Database"
     echo "4. Drop Database"
     echo "5. Exit"
-    read choice
+    read -r choice
     case $choice in
         1) create_data_base;;
         2) list_data_base;;
+        3) Switch_to_DB;;
+        4) drop_db;;
         5) echo "Exiting..."; exit ;;
         *) echo "Invalid choice";;
         esac 
@@ -41,10 +45,10 @@ databaseMenu (){
     echo "5. Select From Table"
     echo "6. Delete From Table"
     echo "7. Update Table"
-    echo "8. Change database"
+    echo "8. Back to database engine "
     echo "9. Exit"
     echo "Enter your choice:"
-    read choice
+    read -r choice
     case $choice in
         1) echo "create_table" ;;
         2) echo "list_tables" ;;
@@ -53,7 +57,7 @@ databaseMenu (){
         5) echo "select_from_table" ;;
         6) echo "delete_from_table" ;;
         7) echo "update_table" ;;
-        8) cd $MainPath;dbms;;
+        8) cd "$MainPath" || exit;dbms;;
         9) echo "Exiting..."; exit ;;
         *) echo "Invalid choice";;
     esac
@@ -64,39 +68,132 @@ create_data_base()
 {
     echo ""
     echo "Enter database name: "
-    read database
+    read -r database
     #check if dir database found 
     if [[ -d "DataBase" ]] > /dev/null ;then
-        cd ./DataBase
+        cd ./DataBase || exit
         if [[ -d "$database" ]] > /dev/null ;then
             echo "Data base are ready exit"
             dbms
         fi
-        mkdir $database
-        cd ./$database
+        mkdir "$database"
+        cd ./"$database" || exit
         echo "Data base is creating and Now your using $database "
-        databaseMenu $database
+        databaseMenu "$database"
         
     else 
         mkdir DataBase
-        cd ./DataBase
-        mkdir $database
-        cd ./$database
+        cd ./DataBase || exit
+        mkdir "$database"
+        cd ./"$database" || exit
         echo "Data base is creating and Now your using $database "
-        databaseMenu $database
+        databaseMenu "$database"
     fi      
 }
 
 list_data_base ()
 {
     if [[ -d "DataBase" ]];then
-        # list all dir inside Database
+     # Initialize an empty array
+        list_database=()
         
-        ls ./DataBase
+        # Fill the array using a for loop
+        for db_dir in ./DataBase/*; do
+            if [ -d "$db_dir" ]; then  # Ensure it's a directory
+                db_name=$(basename "$db_dir")
+                list_database+=("$db_name")
+            fi
+        done     
+    if [ ${#list_database[@]} -eq 0 ]; then
+        echo "No Database Founded try to create database first ..."
+        dbms
+    fi    
+    show_database "${list_database[@]}"
+    dbms
+
     else
     
-        echo "error : DataBase file Not found please try to create database first"
+        echo "error : DataBase file Not found please try to create database first"\
+        dbms
     fi
 }
 
+
+Switch_to_DB ()
+{
+    if [[ -d "DataBase" ]];then
+        # list all dir inside Data./dbms.sh: line 96: show_database: command not found"$"
+        # Initialize an empty array
+        list_database=()
+        
+        # Fill the array using a for loop
+        for db_dir in ./DataBase/*; do
+            if [ -d "$db_dir" ]; then  # Ensure it's a directory
+                db_name=$(basename "$db_dir")
+                list_database+=("$db_name")
+            fi
+        done     
+    if [ ${#list_database[@]} -eq 0 ]; then
+        echo "No Database Founded try to create database first ..."
+        dbms
+    fi     
+    show_database "${list_database[@]}"
+    read -p  "Enter the ID number of database : "  -r id
+    ((id--))
+    if [ "$id" -ge ${#list_database[@]} ]; 
+    then
+        echo "id $id is not found back to main dbms"
+        dbms
+    fi
+    element="${list_database[$id]}"
+    echo "$element"
+    cd ./DataBase/"$element" || exit
+    databaseMenu "$element"
+
+    else
+    
+        echo "error : DataBase file Not found please try to create database first"
+        dbms
+
+    fi
+}
+
+drop_db()
+{
+    if [[ -d "DataBase" ]];then
+        # Initialize an empty array
+        list_database=()
+        
+        # Fill the array using a for loop
+        for db_dir in ./DataBase/*; do
+            if [ -d "$db_dir" ]; then  # Ensure it's a directory
+                db_name=$(basename "$db_dir")
+                list_database+=("$db_name")
+            fi
+        done     
+    if [ ${#list_database[@]} -eq 0 ]; then
+        echo "No Database Founded try to create database first ..."
+        dbms
+    fi    
+    show_database "${list_database[@]}"
+    read -p  "Enter the ID number of database want to drop: "  -r id
+    ((id--))
+    if [ "$id" -ge ${#list_database[@]} ]; 
+    then
+        echo "id $id is not found back to main dbms"
+        dbms
+    fi
+    element="${list_database[$id]}"
+    echo "$element"
+    rm -rf ./DataBase/"$element" || exit
+    dbms
+
+    else
+    
+        echo "error : DataBase file Not found please try to create database first"
+        dbms
+
+    fi
+
+}
 dbms
